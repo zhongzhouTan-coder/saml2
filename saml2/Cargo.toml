@@ -6,3 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+inflate = "0.4.5"
+base64 = "0.21.7"
+xml = "0.8.10"
+chrono = "0.4.33"

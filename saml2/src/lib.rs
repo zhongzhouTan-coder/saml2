@@ -1,6 +1,8 @@
 mod binding;
 mod core;
+mod error;
 mod metadata;
+mod util;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
