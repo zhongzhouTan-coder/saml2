@@ -1,7 +1,5 @@
-use std::time::Instant;
-
-use chrono::{format::parse, DateTime, Utc};
-use xml::{reader::XmlEvent, EventReader};
+use chrono::{DateTime, Utc};
+use xml::{EventReader, reader::XmlEvent};
 
 use crate::{
     error::SAMLError::{MessageDecodingError, UnmarshallingError},
@@ -289,11 +287,35 @@ impl TryFrom<EventReader<InputStream>> for AuthnRequest {
                             })?;
                             authn_request.set_force_authn(Some(force_auth))
                         }
+                        Self::IS_PASSIVE_ATTRIBUTE_NAME => {
+                            let is_passive = value.parse::<bool>()
+                                .map_err(|_| {
+                                    UnmarshallingError("unsupported is passive format!".to_string())
+                                })?;
+                            authn_request.set_is_passive(Some(is_passive));
+                        }
                         Self::PROTOCOL_BINDING_ATTRIBUTE_NAME => {
                             authn_request.set_protocol_binding(Some(value))
                         }
+                        Self::ASSERTION_CONSUMER_SERVICE_INDEX_ATTRIBUTE_NAME => {
+                            let index = value.parse::<usize>()
+                                .map_err(|_| {
+                                    UnmarshallingError("unsupported assertion consumer service index format!".to_string())
+                                })?;
+                            authn_request.set_assertion_consumer_service_index(Some(index))
+                        }
                         Self::ASSERTION_CONSUMER_SERVICE_URL_ATTRIBUTE_NAME => {
                             authn_request.set_assertion_consumer_service_url(Some(value))
+                        }
+                        Self::ATTRIBUTE_CONSUMING_SERVICE_INDEX_ATTRIBUTE_NAME => {
+                            let index = value.parse::<usize>()
+                                .map_err(|_| {
+                                    UnmarshallingError("unsupported attribute consuming service index format!".to_string())
+                                })?;
+                            authn_request.set_attribute_consuming_service_index(Some(index));
+                        }
+                        Self::PROVIDER_NAME_ATTRIBUTE_NAME => {
+                            authn_request.set_provider_name(Some(value))
                         }
                         _ => {}
                     }

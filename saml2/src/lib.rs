@@ -3,6 +3,7 @@ mod core;
 mod error;
 mod metadata;
 mod util;
+mod xml;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
