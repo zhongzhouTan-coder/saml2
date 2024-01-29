@@ -2,9 +2,8 @@ use std::collections::HashMap;
 
 use base64::{prelude::BASE64_STANDARD, Engine};
 use inflate::inflate_bytes;
-use xml::{reader::XmlEvent, EventReader};
 
-use crate::util::InputStream;
+use crate::{util::InputStream, xml::XmlObject};
 
 pub fn decode(params: &HashMap<String, String>) {
     if let Some(saml_encoding) = params.get("SAMLEncoding") {
@@ -22,26 +21,8 @@ pub fn decode(params: &HashMap<String, String>) {
             "saml message is {:?}",
             String::from_utf8(saml_message.clone())
         );
-        let parser = EventReader::new(InputStream::new(saml_message));
-        let mut depth = 0;
-        for e in parser {
-            match e {
-                Ok(XmlEvent::StartElement { name, .. }) => {
-                    println!("{:spaces$}+{name}", "", spaces = depth * 2);
-                    depth += 1;
-                }
-                Ok(XmlEvent::EndElement { name }) => {
-                    depth -= 1;
-                    println!("{:spaces$}-{name}", "", spaces = depth * 2);
-                }
-                Err(e) => {
-                    eprintln!("Error: {e}");
-                    break;
-                }
-                // There's more: https://docs.rs/xml-rs/latest/xml/reader/enum.XmlEvent.html
-                _ => {}
-            }
-        }
+        let xml_object = XmlObject::parse_xml(InputStream::new(saml_message));
+        println!("xml object is {}", xml_object.unwrap().borrow());
     } else {
         // todo throw error
     }
