@@ -5,7 +5,7 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use xml::{reader::XmlEvent, EventReader};
+use xml::{EventReader, reader::XmlEvent};
 
 use self::q_name::QName;
 
@@ -62,8 +62,8 @@ impl XmlObject {
         for e in reader {
             match e {
                 Ok(XmlEvent::StartElement {
-                    name, attributes, ..
-                }) => {
+                       name, attributes, ..
+                   }) => {
                     let mut object = XmlObject::new(
                         name.namespace.clone(),
                         name.local_name.clone(),
@@ -73,10 +73,11 @@ impl XmlObject {
                         .iter()
                         .map(|a| (a.name.local_name.clone(), a.value.clone()))
                         .collect();
-                    if let Some(parent) = xml_objects.last_mut() {
+                    if let Some(parent) = xml_objects.last() {
                         object.parent = Some(Rc::downgrade(parent));
                     }
-                    xml_objects.push(Rc::new(RefCell::new(object)));
+                    let object = Rc::new(RefCell::new(object));
+                    xml_objects.push(object);
                 }
                 Ok(XmlEvent::EndElement { .. }) => {
                     if xml_objects.is_empty() {
@@ -85,8 +86,10 @@ impl XmlObject {
                         });
                     }
                     let child = xml_objects.pop().unwrap();
-                    if let Some(parent) = xml_objects.last_mut() {
+                    if let Some(parent) = xml_objects.last() {
                         parent.borrow_mut().children.push(child);
+                    } else {
+                        return Ok(child);
                     }
                 }
                 Ok(XmlEvent::Characters(s)) => {
@@ -95,13 +98,13 @@ impl XmlObject {
                             message: String::from("invalid xml document"),
                         });
                     }
-                    let parent = xml_objects.last_mut().unwrap();
+                    let parent = xml_objects.last().unwrap();
                     parent.borrow_mut().text = Some(s);
                 }
                 _ => {}
             }
         }
-        xml_objects.pop().ok_or(XmlError {
+        Err(XmlError {
             message: String::from("invalid xml document"),
         })
     }
@@ -113,12 +116,14 @@ impl fmt::Display for XmlObject {
         if let Some(ref text) = self.text {
             write!(f, ", Text: {}", text)?;
         };
+        writeln!(f, "attributes are: ")?;
         for attribute in self.attributes.iter() {
-            write!(f, ", Attribute: {} -> {}", attribute.0, attribute.1)?;
+            write!(f, "{} -> {} ", attribute.0, attribute.1)?;
         }
         for child in self.children.iter() {
             write!(f, ", Child: {}", child.borrow())?;
         }
+        writeln!(f, "")?;
         Ok(())
     }
 }

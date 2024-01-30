@@ -42,13 +42,14 @@ impl QName {
 
 impl Display for QName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.local_name)?;
+        write!(f, "local name: {}", self.local_name)?;
         if let Some(ref prefix) = self.prefix {
-            write!(f, ":{}", prefix)?;
+            write!(f, "prefix: {}", prefix)?;
         }
         if let Some(ref namespace_uri) = self.namespace_uri {
-            write!(f, " {}\n", namespace_uri)?;
+            write!(f, "namespace uri: {}", namespace_uri)?;
         }
+        writeln!(f, "")?;
         Ok(())
     }
 }
