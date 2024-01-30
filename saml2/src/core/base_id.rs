@@ -1,4 +1,4 @@
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BaseID {
     name_qualifier: Option<String>,
     sp_name_qualifier: Option<String>,

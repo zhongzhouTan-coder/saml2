@@ -1,8 +1,13 @@
-use std::time::Instant;
-#[derive(Clone)]
+use std::{cell::Ref, str::FromStr};
+
+use chrono::{DateTime, Utc};
+
+use crate::{error::SAMLError, xml::XmlObject};
+
+#[derive(Clone, Debug)]
 pub struct Conditions {
-    not_before: Option<Instant>,
-    not_on_or_after: Option<Instant>,
+    not_before: Option<DateTime<Utc>>,
+    not_on_or_after: Option<DateTime<Utc>>,
     condition: String,
     audience_restriction: String,
     one_time_use: String,
@@ -10,19 +15,37 @@ pub struct Conditions {
 }
 
 impl Conditions {
-    pub fn not_before(&self) -> Option<Instant> {
+    const ATTRIB_NOT_BEFORE: &'static str = "NotBefore";
+    const ATTRIB_NOT_ON_OR_AFTER: &'static str = "NotOnOrAfter";
+    const ATTRIB_CONDITION: &'static str = "Condition";
+    const ATTRIB_AUDIENCE_RESTRICTION: &'static str = "AudienceRestriction";
+    const ATTRIB_ONE_TIME_USE: &'static str = "OneTimeUse";
+    const ATTRIB_PROXY_RESTRICTION: &'static str = "ProxyRestriction";
+
+    pub fn new() -> Self {
+        Self {
+            not_before: Default::default(),
+            not_on_or_after: Default::default(),
+            condition: Default::default(),
+            audience_restriction: Default::default(),
+            one_time_use: Default::default(),
+            proxy_restriction: Default::default(),
+        }
+    }
+
+    pub fn not_before(&self) -> Option<DateTime<Utc>> {
         self.not_before
     }
 
-    pub fn set_not_before(&mut self, not_before: Option<Instant>) {
+    pub fn set_not_before(&mut self, not_before: Option<DateTime<Utc>>) {
         self.not_before = not_before
     }
 
-    pub fn not_on_or_after(&self) -> Option<Instant> {
+    pub fn not_on_or_after(&self) -> Option<DateTime<Utc>> {
         self.not_on_or_after
     }
 
-    pub fn set_not_on_or_after(&mut self, not_on_or_after: Option<Instant>) {
+    pub fn set_not_on_or_after(&mut self, not_on_or_after: Option<DateTime<Utc>>) {
         self.not_on_or_after = not_on_or_after
     }
 
@@ -56,5 +79,44 @@ impl Conditions {
 
     pub fn set_proxy_restriction(&mut self, proxy_restriction: String) {
         self.proxy_restriction = proxy_restriction
+    }
+}
+
+impl TryFrom<Ref<'_, XmlObject>> for Conditions {
+    type Error = SAMLError;
+    fn try_from(element: Ref<'_, XmlObject>) -> Result<Self, Self::Error> {
+        fn parse_from_string<T: FromStr>(xml_string: &str) -> Result<T, SAMLError> {
+            xml_string
+                .parse::<T>()
+                .map_err(|_| SAMLError::UnmarshallingError("parse value error".to_string()))
+        }
+
+        let mut conditions = Conditions::new();
+        for attribute in element.attributes() {
+            match attribute.0.as_str() {
+                Conditions::ATTRIB_NOT_BEFORE => {
+                    conditions.not_before =
+                        Some(parse_from_string::<DateTime<Utc>>(attribute.1.as_str())?);
+                }
+                Conditions::ATTRIB_NOT_ON_OR_AFTER => {
+                    conditions.not_on_or_after =
+                        Some(parse_from_string::<DateTime<Utc>>(attribute.1.as_str())?);
+                }
+                Conditions::ATTRIB_CONDITION => {
+                    conditions.condition = attribute.1.to_string();
+                }
+                Conditions::ATTRIB_AUDIENCE_RESTRICTION => {
+                    conditions.audience_restriction = attribute.1.to_string();
+                }
+                Conditions::ATTRIB_ONE_TIME_USE => {
+                    conditions.one_time_use = attribute.1.to_string();
+                }
+                Conditions::ATTRIB_PROXY_RESTRICTION => {
+                    conditions.proxy_restriction = attribute.1.to_string();
+                }
+                _ => {}
+            }
+        }
+        Ok(conditions)
     }
 }

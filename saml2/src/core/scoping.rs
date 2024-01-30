@@ -1,6 +1,9 @@
-use super::{idp_list::IDPList, requester_id::RequesterID};
+use std::cell::Ref;
 
-#[derive(Clone)]
+use super::{idp_list::IDPList, requester_id::RequesterID};
+use crate::{error::SAMLError, xml::XmlObject};
+
+#[derive(Clone, Default, Debug)]
 pub struct Scoping {
     proxy_count: Option<usize>,
     idp_list: Option<IDPList>,
@@ -30,5 +33,22 @@ impl Scoping {
 
     pub fn set_requester_ids(&mut self, value: Option<RequesterID>) {
         self.requester_ids = value;
+    }
+}
+
+impl TryFrom<Ref<'_, XmlObject>> for Scoping {
+    type Error = SAMLError;
+
+    fn try_from(element: Ref<'_, XmlObject>) -> Result<Self, Self::Error> {
+        let mut scoping = Scoping::default();
+        for child in element.children() {
+            let child = child.borrow();
+            match child.q_name().local_name() {
+                _ => {
+                    println!("child is {}", child.q_name())
+                }
+            }
+        }
+        Ok(scoping)
     }
 }

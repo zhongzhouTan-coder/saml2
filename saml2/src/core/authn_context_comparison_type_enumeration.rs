@@ -1,4 +1,4 @@
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum AuthnContextComparisonTypeEnumeration {
     EXACT(String),
     MINIMUM(String),

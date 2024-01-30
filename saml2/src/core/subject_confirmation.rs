@@ -3,7 +3,7 @@ use super::{
     subject_confirmation_data::SubjectConfirmationData,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SubjectConfirmation {
     base_id: Option<BaseID>,
     name_id: Option<NameID>,

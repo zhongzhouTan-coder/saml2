@@ -5,7 +5,7 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use xml::{EventReader, reader::XmlEvent};
+use xml::{reader::XmlEvent, EventReader};
 
 use self::q_name::QName;
 
@@ -56,14 +56,46 @@ impl XmlObject {
         }
     }
 
+    pub fn q_name(&self) -> &QName {
+        &self.q_name
+    }
+
+    pub fn set_q_name(&mut self, q_name: QName) {
+        self.q_name = q_name;
+    }
+
+    pub fn text(&self) -> Option<&String> {
+        self.text.as_ref()
+    }
+
+    pub fn set_text(&mut self, text: Option<String>) {
+        self.text = text;
+    }
+
+    pub fn attributes(&self) -> &Vec<(String, String)> {
+        &self.attributes
+    }
+
+    pub fn set_attributes(&mut self, attributes: Vec<(String, String)>) {
+        self.attributes = attributes;
+    }
+
+    pub fn children(&self) -> &Vec<Rc<RefCell<XmlObject>>> {
+        &self.children
+    }
+
+    pub fn set_children(&mut self, children: Vec<Rc<RefCell<XmlObject>>>) {
+        self.children = children;
+    }
+
     pub fn parse_xml<I: Read>(mut input: I) -> Result<Rc<RefCell<XmlObject>>, XmlError> {
         let reader = EventReader::new(input);
         let mut xml_objects: Vec<Rc<RefCell<XmlObject>>> = Vec::new();
         for e in reader {
             match e {
                 Ok(XmlEvent::StartElement {
-                       name, attributes, ..
-                   }) => {
+                    name, attributes, ..
+                }) => {
                     let mut object = XmlObject::new(
                         name.namespace.clone(),
                         name.local_name.clone(),

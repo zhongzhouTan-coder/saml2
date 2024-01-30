@@ -3,9 +3,11 @@ use std::collections::HashMap;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use inflate::inflate_bytes;
 
-use crate::{util::InputStream, xml::XmlObject};
+use crate::{
+    core::authn_request::AuthnRequest, error::SAMLError, util::InputStream, xml::XmlObject,
+};
 
-pub fn decode(params: &HashMap<String, String>) {
+pub fn decode(params: &HashMap<String, String>) -> Result<AuthnRequest, SAMLError> {
     if let Some(saml_encoding) = params.get("SAMLEncoding") {
         if saml_encoding.trim() != "urn:oasis:names:to:SAML:2.0:bindings:URL-Encoding:DEFLATE" {
             // todo throw error
@@ -21,10 +23,16 @@ pub fn decode(params: &HashMap<String, String>) {
             "saml message is {:?}",
             String::from_utf8(saml_message.clone())
         );
-        let xml_object = XmlObject::parse_xml(InputStream::new(saml_message));
-        println!("xml object is {}", xml_object.unwrap().borrow());
+        match XmlObject::parse_xml(InputStream::new(saml_message)) {
+            Ok(xml_object) => xml_object.borrow().try_into(),
+            Err(_) => Err(SAMLError::MessageDecodingError(
+                "invalid xml format!".to_string(),
+            )),
+        }
     } else {
-        // todo throw error
+        Err(SAMLError::MessageDecodingError(
+            "saml message cannot be null!".to_string(),
+        ))
     }
 }
 
@@ -39,6 +47,7 @@ mod test {
         let messages = "jVJdj9owEPwrkd8dJyG5CAuQ6NEPJArooH3oC/I5y2E1sV3v5j7662vCnXqV2lPfrPXO7MzsTlB1rZfznk72Bn70gJQ8dq1FOXxMWR+sdAoNSqs6QEla7uafV7JIM+mDI6ddy15B3kYoRAhknGXJcjFlm/X71ebjcn2orsp6XEHGs1FR8DK7avi40iOeN/mxruqRqqFmyVcIGLFTFqkiAWIPS4ukLMVSVpQ8y3lR7fNK5qUsx99Y8sEFDYO5KaPQA0sW0aGxigaeE5FHKYQh+skJ9In7VtHRhS7VNsV7nWoXvLEUVGqBhPJGqMgmzk4LgehYsn0O4Z2xjbF3b/u/vTSh/LTfb/l2s9uzZP6SybWz2HcQdhDujYYvN6vfCr+bW2UVVw/I7ePfxR18298Z+9wqDs5DHIYUnDgg6D4YehqEC6WRzSbnpxxCDLP/HzMRr3GTy/mso9HlYutao5/OmXeK/p1DnuZDxTT8OLTK3qIHbY4GmhhH27qH6wCK4GVnYnaZ+uedzn4B";
         let mut params: HashMap<String, String> = HashMap::new();
         params.insert("SAMLRequest".to_string(), messages.to_string());
-        decode(&params);
+        let result = decode(&params);
+        assert!(result.is_ok());
     }
 }

@@ -1,10 +1,8 @@
-use chrono::{DateTime, Utc};
-use xml::{EventReader, reader::XmlEvent};
+use std::{cell::Ref, str::FromStr};
 
-use crate::{
-    error::SAMLError::{MessageDecodingError, UnmarshallingError},
-    util::InputStream,
-};
+use chrono::{DateTime, Utc};
+
+use crate::{error::SAMLError, xml::XmlObject};
 
 use super::{
     conditions::Conditions, extensions::Extensions, issuer::Issuer, name_id_policy::NameIDPolicy,
@@ -12,6 +10,7 @@ use super::{
     saml_version::SAMLVersion, scoping::Scoping, subject::Subject,
 };
 
+#[derive(Debug)]
 pub struct AuthnRequest {
     id: String,
     version: SAMLVersion,
@@ -36,21 +35,26 @@ pub struct AuthnRequest {
 }
 
 impl AuthnRequest {
-    const FORCE_AUTHN_ATTRIBUTE_NAME: &'static str = "ForceAuthn";
-    const IS_PASSIVE_ATTRIBUTE_NAME: &'static str = "IsPassive";
-    const PROTOCOL_BINDING_ATTRIBUTE_NAME: &'static str = "ProtocolBinding";
-    const ASSERTION_CONSUMER_SERVICE_INDEX_ATTRIBUTE_NAME: &'static str =
-        "AssertionConsumerServiceIndex";
-    const ASSERTION_CONSUMER_SERVICE_URL_ATTRIBUTE_NAME: &'static str =
-        "AssertionConsumerServiceURL";
-    const ATTRIBUTE_CONSUMING_SERVICE_INDEX_ATTRIBUTE_NAME: &'static str =
-        "AttributeConsumingServiceIndex";
-    const PROVIDER_NAME_ATTRIBUTE_NAME: &'static str = "ProviderName";
-    const VERSION_ATTRIBUTE_NAME: &'static str = "Version";
-    const ID_ATTRIBUTE_NAME: &'static str = "ID";
-    const ISSUE_INSTANT_ATTRIBUTE_NAME: &'static str = "IssueInstant";
-    const DESTINATION_ATTRIBUTE_NAME: &'static str = "Destination";
-    const CONSENT_ATTRIBUTE_NAME: &'static str = "Consent";
+    const ATTRIB_FORCE_AUTHN: &'static str = "ForceAuthn";
+    const ATTRIB_IS_PASSIVE: &'static str = "IsPassive";
+    const ATTRIB_PROTOCOL_BINDING: &'static str = "ProtocolBinding";
+    const ATTRIB_ASSERTION_CONSUMER_SERVICE_INDEX: &'static str = "AssertionConsumerServiceIndex";
+    const ATTRIB_ASSERTION_CONSUMER_SERVICE_URL: &'static str = "AssertionConsumerServiceURL";
+    const ATTRIB_ATTRIBUTE_CONSUMING_SERVICE_INDEX: &'static str = "AttributeConsumingServiceIndex";
+    const ATTRIB_PROVIDER_NAME: &'static str = "ProviderName";
+    const ATTRIB_VERSION: &'static str = "Version";
+    const ATTRIB_ID: &'static str = "ID";
+    const ATTRIB_ISSUE_INSTANT: &'static str = "IssueInstant";
+    const ATTRIB_DESTINATION: &'static str = "Destination";
+    const ATTRIB_CONSENT: &'static str = "Consent";
+
+    const CHILD_ISSUER_NAME: &'static str = "Issuer";
+    const CHILD_EXTENSIONS_NAME: &'static str = "Extensions";
+    const CHILD_NAME_ID_POLICY_NAME: &'static str = "NameIDPolicy";
+    const CHILD_SUBJECT_NAME: &'static str = "Subject";
+    const CHILD_CONDITIONS_NAME: &'static str = "Conditions";
+    const CHILD_REQUESTED_AUTHN_CONTEXT_NAME: &'static str = "RequestedAuthnContext";
+    const CHILD_SCOPING_NAME: &'static str = "Scoping";
 
     pub fn subject(&self) -> Option<&Subject> {
         self.subject.as_ref()
@@ -254,75 +258,91 @@ impl Default for AuthnRequest {
     }
 }
 
-impl TryFrom<EventReader<InputStream>> for AuthnRequest {
-    type Error = crate::error::SAMLError;
+impl TryFrom<Ref<'_, XmlObject>> for AuthnRequest {
+    type Error = SAMLError;
 
-    fn try_from(mut reader: EventReader<InputStream>) -> Result<Self, Self::Error> {
-        let element = reader
-            .next()
-            .map_err(|err| MessageDecodingError(err.msg().to_string()))?;
-        let mut authn_request = AuthnRequest::default();
-        match element {
-            XmlEvent::StartElement { attributes, .. } => {
-                for attr in attributes {
-                    let local_name = attr.name.local_name.as_str();
-                    let value = attr.value.to_string();
-                    match local_name {
-                        Self::ID_ATTRIBUTE_NAME => authn_request.set_id(value),
-                        Self::VERSION_ATTRIBUTE_NAME => {
-                            authn_request.set_version(SAMLVersion::from_string(&value)?)
-                        }
-                        Self::ISSUE_INSTANT_ATTRIBUTE_NAME => {
-                            let issue_instant = value.parse::<DateTime<Utc>>().map_err(|_| {
-                                UnmarshallingError("unsupported issue instant format!".to_string())
-                            })?;
-                            authn_request.set_issue_instant(issue_instant)
-                        }
-                        Self::DESTINATION_ATTRIBUTE_NAME => {
-                            authn_request.set_destination(Some(value))
-                        }
-                        Self::FORCE_AUTHN_ATTRIBUTE_NAME => {
-                            let force_auth = value.parse::<bool>().map_err(|_| {
-                                UnmarshallingError("unsupported force authn format!".to_string())
-                            })?;
-                            authn_request.set_force_authn(Some(force_auth))
-                        }
-                        Self::IS_PASSIVE_ATTRIBUTE_NAME => {
-                            let is_passive = value.parse::<bool>()
-                                .map_err(|_| {
-                                    UnmarshallingError("unsupported is passive format!".to_string())
-                                })?;
-                            authn_request.set_is_passive(Some(is_passive));
-                        }
-                        Self::PROTOCOL_BINDING_ATTRIBUTE_NAME => {
-                            authn_request.set_protocol_binding(Some(value))
-                        }
-                        Self::ASSERTION_CONSUMER_SERVICE_INDEX_ATTRIBUTE_NAME => {
-                            let index = value.parse::<usize>()
-                                .map_err(|_| {
-                                    UnmarshallingError("unsupported assertion consumer service index format!".to_string())
-                                })?;
-                            authn_request.set_assertion_consumer_service_index(Some(index))
-                        }
-                        Self::ASSERTION_CONSUMER_SERVICE_URL_ATTRIBUTE_NAME => {
-                            authn_request.set_assertion_consumer_service_url(Some(value))
-                        }
-                        Self::ATTRIBUTE_CONSUMING_SERVICE_INDEX_ATTRIBUTE_NAME => {
-                            let index = value.parse::<usize>()
-                                .map_err(|_| {
-                                    UnmarshallingError("unsupported attribute consuming service index format!".to_string())
-                                })?;
-                            authn_request.set_attribute_consuming_service_index(Some(index));
-                        }
-                        Self::PROVIDER_NAME_ATTRIBUTE_NAME => {
-                            authn_request.set_provider_name(Some(value))
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            _ => {}
+    fn try_from(element: Ref<'_, XmlObject>) -> Result<Self, Self::Error> {
+        fn parse_from_string<T: FromStr>(xml_string: &str) -> Result<T, SAMLError> {
+            xml_string
+                .parse::<T>()
+                .map_err(|_| SAMLError::UnmarshallingError("parse value error".to_string()))
         }
-        Ok(AuthnRequest::default())
+
+        let mut authn_request = AuthnRequest::default();
+        for attribute in element.attributes() {
+            match attribute.0.as_str() {
+                AuthnRequest::ATTRIB_VERSION => {
+                    authn_request.version = SAMLVersion::from_string(attribute.1.as_str())?;
+                }
+                AuthnRequest::ATTRIB_ID => {
+                    authn_request.id = attribute.1.to_string();
+                }
+                AuthnRequest::ATTRIB_ISSUE_INSTANT => {
+                    authn_request.issue_instant =
+                        parse_from_string::<DateTime<Utc>>(attribute.1.as_str())?;
+                }
+                AuthnRequest::ATTRIB_DESTINATION => {
+                    authn_request.destination = Some(attribute.1.to_string());
+                }
+                AuthnRequest::ATTRIB_CONSENT => {
+                    authn_request.consent = Some(attribute.1.to_string());
+                }
+                AuthnRequest::ATTRIB_ATTRIBUTE_CONSUMING_SERVICE_INDEX => {
+                    authn_request.attribute_consuming_service_index =
+                        Some(parse_from_string::<usize>(attribute.1.as_str())?);
+                }
+                AuthnRequest::ATTRIB_PROVIDER_NAME => {
+                    authn_request.provider_name = Some(attribute.1.to_string());
+                }
+                AuthnRequest::ATTRIB_ASSERTION_CONSUMER_SERVICE_INDEX => {
+                    authn_request.assertion_consumer_service_index =
+                        Some(parse_from_string::<usize>(attribute.1.as_str())?);
+                }
+                AuthnRequest::ATTRIB_ASSERTION_CONSUMER_SERVICE_URL => {
+                    authn_request.assertion_consumer_service_url = Some(attribute.1.to_string());
+                }
+                AuthnRequest::ATTRIB_PROTOCOL_BINDING => {
+                    authn_request.protocol_binding = Some(attribute.1.to_string());
+                }
+                AuthnRequest::ATTRIB_FORCE_AUTHN => {
+                    authn_request.force_authn =
+                        Some(parse_from_string::<bool>(attribute.1.as_str())?);
+                }
+                AuthnRequest::ATTRIB_IS_PASSIVE => {
+                    authn_request.is_passive =
+                        Some(parse_from_string::<bool>(attribute.1.as_str())?);
+                }
+                _ => {}
+            }
+        }
+        for child in element.children() {
+            let child = child.borrow();
+            match child.q_name().local_name() {
+                AuthnRequest::CHILD_ISSUER_NAME => {
+                    authn_request.issuer = Some(Issuer::try_from(child)?);
+                }
+                AuthnRequest::CHILD_SUBJECT_NAME => {
+                    authn_request.subject = Some(Subject::try_from(child)?);
+                }
+                AuthnRequest::CHILD_NAME_ID_POLICY_NAME => {
+                    authn_request.name_id_policy = Some(NameIDPolicy::try_from(child)?);
+                }
+                AuthnRequest::CHILD_CONDITIONS_NAME => {
+                    authn_request.conditions = Some(Conditions::try_from(child)?);
+                }
+                AuthnRequest::CHILD_REQUESTED_AUTHN_CONTEXT_NAME => {
+                    authn_request.requested_authn_context =
+                        Some(RequestedAuthnContext::try_from(child)?);
+                }
+                AuthnRequest::CHILD_SCOPING_NAME => {
+                    authn_request.scoping = Some(Scoping::try_from(child)?);
+                }
+                AuthnRequest::CHILD_EXTENSIONS_NAME => {
+                    authn_request.extensions = Some(Extensions::try_from(child)?);
+                }
+                _ => {}
+            }
+        }
+        Ok(authn_request)
     }
 }

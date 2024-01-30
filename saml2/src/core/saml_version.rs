@@ -1,6 +1,8 @@
+use std::fmt::Display;
+
 use crate::error::SAMLError;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct SAMLVersion {
     major: i32,
     minor: i32,
@@ -28,5 +30,11 @@ impl SAMLVersion {
 
     pub fn get_minor_version(&self) -> i32 {
         self.minor
+    }
+}
+
+impl Display for SAMLVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}", self.major, self.minor)
     }
 }

@@ -1,6 +1,6 @@
 use super::abstract_name_id_type::AbstractNameIDType;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct NameID {
     name_qualifier: Option<String>,
     sp_name_qualifier: Option<String>,

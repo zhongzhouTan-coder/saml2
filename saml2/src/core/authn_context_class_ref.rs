@@ -1,4 +1,4 @@
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AuthnContextClassRef {
     value: Option<String>,
 }
