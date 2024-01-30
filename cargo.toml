@@ -1,2 +1,12 @@
+[package]
+name = "saml2-library"
+version = "0.1.0"
+authors = ["TangXuan"]
+repository = "https://github.com/zhongzhouTan-coder/saml2.git"
+license-file = "./LICENSE"
+
 [workspace]
 members = ["saml2"]
+
+[lib]
+path = "./saml2/src/lib.rs"
