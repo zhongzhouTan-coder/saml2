@@ -1,13 +1,15 @@
 use std::collections::HashMap;
 
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 use inflate::inflate_bytes;
 
 use crate::{
-    core::authn_request::AuthnRequest, error::SAMLError, util::InputStream, xml::XmlObject,
+    error::SAMLError, util::InputStream, xml::XmlObject,
 };
+use crate::core::authn_request::AuthnRequest;
+use crate::core::request_abstract_type::RequestAbstractType;
 
-pub fn decode(params: &HashMap<String, String>) -> Result<AuthnRequest, SAMLError> {
+pub fn decode(params: &HashMap<String, String>) -> Result<Box<dyn RequestAbstractType>, SAMLError> {
     if let Some(saml_encoding) = params.get("SAMLEncoding") {
         if saml_encoding.trim() != "urn:oasis:names:to:SAML:2.0:bindings:URL-Encoding:DEFLATE" {
             // todo throw error
@@ -24,7 +26,8 @@ pub fn decode(params: &HashMap<String, String>) -> Result<AuthnRequest, SAMLErro
             String::from_utf8(saml_message.clone())
         );
         match XmlObject::parse_xml(InputStream::new(saml_message)) {
-            Ok(xml_object) => xml_object.borrow().try_into(),
+            Ok(xml_object) => AuthnRequest::try_from( xml_object.borrow())
+                .map(|res| Box::new(res) as Box<dyn RequestAbstractType>),
             Err(_) => Err(SAMLError::MessageDecodingError(
                 "invalid xml format!".to_string(),
             )),

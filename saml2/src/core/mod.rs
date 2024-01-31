@@ -26,3 +26,5 @@ pub mod status_response_type;
 pub mod subject;
 pub mod subject_confirmation;
 pub mod subject_confirmation_data;
+pub mod status;
+pub mod status_code;
