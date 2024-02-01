@@ -10,6 +10,11 @@ use crate::core::status_response_type::StatusResponseType;
 use crate::error::SAMLError;
 use crate::xml::XmlObject;
 
+use super::assertion::Assertion;
+use super::encrypted_assertion::EncryptedAssertion;
+use super::parse_from_string;
+
+#[derive(Debug)]
 pub struct Response {
     id: String,
     in_response_to: Option<String>,
@@ -21,25 +26,32 @@ pub struct Response {
     signature: Option<String>,
     extensions: Option<Extensions>,
     status: Status,
-    assertions: Vec<String>,
-    encrypted_assertions: Vec<String>,
+    assertions: Vec<Assertion>,
+    encrypted_assertions: Vec<EncryptedAssertion>,
 }
 
 impl Response {
-    pub fn assertions(&self) -> &Vec<String> {
+    const ATTRIB_ID: &'static str = "ID";
+    const ATTRIB_IN_RESPONSE_TO: &'static str = "InResponseTo";
+    const ATTRIB_VERSION: &'static str = "Version";
+    const ATTRIB_ISSUE_INSTANT: &'static str = "IssueInstant";
+    const ATTRIB_DESTINATION: &'static str = "Destination";
+    const ATTRIB_CONSENT: &'static str = "Consent";
+
+    pub fn assertions(&self) -> &Vec<Assertion> {
         self.assertions.as_ref()
     }
 
-    pub fn set_assertions(&mut self, assertions: Vec<String>) {
-        self.assertions = assertions
+    pub fn add_assertion(&mut self, assertion: Assertion) {
+        self.assertions.push(assertion)
     }
 
-    pub fn encrypted_assertions(&self) -> &Vec<String> {
+    pub fn encrypted_assertions(&self) -> &Vec<EncryptedAssertion> {
         self.encrypted_assertions.as_ref()
     }
 
-    pub fn set_encrypted_assertions(&mut self, encrypted_assertions: Vec<String>) {
-        self.encrypted_assertions = encrypted_assertions
+    pub fn add_encrypted_assertion(&mut self, encrypted_assertion: EncryptedAssertion) {
+        self.encrypted_assertions.push(encrypted_assertion)
     }
 }
 
@@ -127,7 +139,20 @@ impl StatusResponseType for Response {
 
 impl Default for Response {
     fn default() -> Self {
-        todo!()
+        Response {
+            id: String::new(),
+            in_response_to: None,
+            version: SAMLVersion::default(),
+            issue_instant: Utc::now(),
+            destination: None,
+            consent: None,
+            issuer: None,
+            signature: None,
+            extensions: None,
+            status: Status::default(),
+            assertions: Vec::new(),
+            encrypted_assertions: Vec::new(),
+        }
     }
 }
 
@@ -137,8 +162,49 @@ impl TryFrom<Ref<'_, XmlObject>> for Response {
     fn try_from(object: Ref<'_, XmlObject>) -> Result<Self, Self::Error> {
         let mut response = Response::default();
         for attribute in object.attributes() {
-
+            match attribute.0.as_str() {
+                Self::ATTRIB_ID => {
+                    response.set_id(attribute.1.to_string());
+                }
+                Self::ATTRIB_IN_RESPONSE_TO => {
+                    response.set_in_response_to(Some(attribute.1.to_string()));
+                }
+                Self::ATTRIB_VERSION => {
+                    response.set_version(SAMLVersion::from_string(attribute.1.as_str())?);
+                }
+                Self::ATTRIB_ISSUE_INSTANT => {
+                    response.set_issue_instant(parse_from_string::<DateTime<Utc>>(
+                        attribute.1.as_str(),
+                    )?);
+                }
+                Self::ATTRIB_DESTINATION => {
+                    response.set_destination(Some(attribute.1.to_string()));
+                }
+                Self::ATTRIB_CONSENT => {
+                    response.set_consent(Some(attribute.1.to_string()));
+                }
+                _ => {}
+            }
         }
-        todo!()
+        for child in object.children() {
+            let child = child.borrow();
+            match child.q_name().local_name() {
+                "Issuer" => {
+                    response.set_issuer(Some(Issuer::try_from(child)?));
+                }
+                "Extensions" => {
+                    response.set_extensions(Some(Extensions::try_from(child)?));
+                }
+                "Status" => {
+                    response.set_status(Status::try_from(child)?);
+                }
+                "Assertion" => response.add_assertion(Assertion::try_from(child)?),
+                "EncryptedAssertion" => {
+                    // todo
+                }
+                _ => {}
+            }
+        }
+        Ok(response)
     }
 }

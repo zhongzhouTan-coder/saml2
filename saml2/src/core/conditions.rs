@@ -4,12 +4,14 @@ use chrono::{DateTime, Utc};
 
 use crate::{error::SAMLError, xml::XmlObject};
 
-#[derive(Clone, Debug)]
+use super::audience_restriction::AudienceRestriction;
+
+#[derive(Debug)]
 pub struct Conditions {
     not_before: Option<DateTime<Utc>>,
     not_on_or_after: Option<DateTime<Utc>>,
     condition: String,
-    audience_restriction: String,
+    audience_restriction: AudienceRestriction,
     one_time_use: String,
     proxy_restriction: String,
 }
@@ -18,9 +20,10 @@ impl Conditions {
     const ATTRIB_NOT_BEFORE: &'static str = "NotBefore";
     const ATTRIB_NOT_ON_OR_AFTER: &'static str = "NotOnOrAfter";
     const ATTRIB_CONDITION: &'static str = "Condition";
-    const ATTRIB_AUDIENCE_RESTRICTION: &'static str = "AudienceRestriction";
     const ATTRIB_ONE_TIME_USE: &'static str = "OneTimeUse";
     const ATTRIB_PROXY_RESTRICTION: &'static str = "ProxyRestriction";
+
+    const CHILD_AUDIENCE_RESTRICTION: &'static str = "AudienceRestriction";
 
     pub fn new() -> Self {
         Self {
@@ -57,11 +60,11 @@ impl Conditions {
         self.condition = condition
     }
 
-    pub fn audience_restriction(&self) -> &String {
+    pub fn audience_restriction(&self) -> &AudienceRestriction {
         &self.audience_restriction
     }
 
-    pub fn set_audience_restriction(&mut self, audience_restriction: String) {
+    pub fn set_audience_restriction(&mut self, audience_restriction: AudienceRestriction) {
         self.audience_restriction = audience_restriction
     }
 
@@ -105,14 +108,20 @@ impl TryFrom<Ref<'_, XmlObject>> for Conditions {
                 Conditions::ATTRIB_CONDITION => {
                     conditions.condition = attribute.1.to_string();
                 }
-                Conditions::ATTRIB_AUDIENCE_RESTRICTION => {
-                    conditions.audience_restriction = attribute.1.to_string();
-                }
                 Conditions::ATTRIB_ONE_TIME_USE => {
                     conditions.one_time_use = attribute.1.to_string();
                 }
                 Conditions::ATTRIB_PROXY_RESTRICTION => {
                     conditions.proxy_restriction = attribute.1.to_string();
+                }
+                _ => {}
+            }
+        }
+        for child in element.children() {
+            let child = child.borrow();
+            match child.q_name().local_name() {
+                Conditions::CHILD_AUDIENCE_RESTRICTION => {
+                    conditions.audience_restriction = AudienceRestriction::try_from(child)?;
                 }
                 _ => {}
             }

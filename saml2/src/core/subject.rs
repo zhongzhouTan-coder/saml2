@@ -13,9 +13,15 @@ pub struct Subject {
     name_id: Option<NameID>,
     encrypted_id: Option<EncryptedID>,
     subject_confirmations: Vec<SubjectConfirmation>,
+    value: Option<String>,
 }
 
 impl Subject {
+    const CHILD_BASE_ID: &'static str = "BaseID";
+    const CHILD_NAME_ID: &'static str = "NameID";
+    const CHILD_ENCRYPTED_ID: &'static str = "EncryptedID";
+    const CHILD_SUBJECT_CONFIRMATION: &'static str = "SubjectConfirmation";
+
     pub fn new() -> Self {
         Self::default()
     }
@@ -36,6 +42,10 @@ impl Subject {
         &self.subject_confirmations
     }
 
+    pub fn value(&self) -> Option<&String> {
+        self.value.as_ref()
+    }
+
     pub fn set_base_id(&mut self, base_id: Option<BaseID>) {
         self.base_id = base_id;
     }
@@ -48,8 +58,12 @@ impl Subject {
         self.encrypted_id = encrypted_id;
     }
 
-    pub fn set_subject_confirmations(&mut self, subject_confirmations: Vec<SubjectConfirmation>) {
-        self.subject_confirmations = subject_confirmations;
+    pub fn add_subject_confirmation(&mut self, subject_confirmation: SubjectConfirmation) {
+        self.subject_confirmations.push(subject_confirmation);
+    }
+
+    pub fn set_value(&mut self, value: Option<String>) {
+        self.value = value;
     }
 }
 
@@ -61,10 +75,25 @@ impl TryFrom<Ref<'_, XmlObject>> for Subject {
         for child in element.children() {
             let child = child.borrow();
             match child.q_name().local_name() {
+                Self::CHILD_BASE_ID => {
+                    subject.set_base_id(Some(BaseID::try_from(child)?));
+                }
+                Self::CHILD_NAME_ID => {
+                    subject.set_name_id(Some(NameID::try_from(child)?));
+                }
+                Self::CHILD_ENCRYPTED_ID => {
+                    // todo
+                }
+                Self::CHILD_SUBJECT_CONFIRMATION => {
+                    subject.add_subject_confirmation(SubjectConfirmation::try_from(child)?);
+                }
                 _ => {
                     println!("subject child: {:?}", child.q_name().local_name());
                 }
             }
+        }
+        if let Some(value) = element.text() {
+            subject.set_value(Some(value.to_string()));
         }
         Ok(subject)
     }

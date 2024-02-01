@@ -1,30 +1,49 @@
-pub mod abstract_name_id_type;
-pub mod authn_context_class_ref;
-pub mod authn_context_comparison_type_enumeration;
-pub mod authn_context_decl_ref;
+use std::str::FromStr;
+
+use crate::error::SAMLError;
+
+mod abstract_name_id_type;
+mod advice;
+mod assertion;
+mod audience;
+mod audience_restriction;
+mod authenticating_authority;
+mod authn_context;
+mod authn_context_class_ref;
+mod authn_context_comparison_type_enumeration;
+mod authn_context_decl;
+mod authn_context_decl_ref;
 pub mod authn_request;
-pub mod base_id;
-pub mod conditions;
-pub mod element_type;
-pub mod encrypted_data;
-pub mod encrypted_element_type;
-pub mod encrypted_id;
-pub mod encrypted_key;
-pub mod extensions;
-pub mod idp_entry;
-pub mod idp_list;
-pub mod issuer;
-pub mod name_id;
-pub mod name_id_policy;
+mod authn_statement;
+mod base_id;
+mod conditions;
+mod element_type;
+mod encrypted_assertion;
+mod encrypted_data;
+mod encrypted_element_type;
+mod encrypted_id;
+mod encrypted_key;
+mod extensions;
+mod idp_entry;
+mod idp_list;
+mod issuer;
+mod name_id;
+mod name_id_policy;
 pub mod request_abstract_type;
-pub mod requested_authn_context;
-pub mod requester_id;
+mod requested_authn_context;
+mod requester_id;
 pub mod response;
-pub mod saml_version;
-pub mod scoping;
+mod saml_version;
+mod scoping;
+mod statement;
+mod status;
+mod status_code;
 pub mod status_response_type;
-pub mod subject;
-pub mod subject_confirmation;
-pub mod subject_confirmation_data;
-pub mod status;
-pub mod status_code;
+mod subject;
+mod subject_confirmation;
+mod subject_confirmation_data;
+
+/// parse a xml string to a type that implements the fromStr trait
+fn parse_from_string<T: FromStr>(value: &str) -> Result<T, SAMLError> {
+    T::from_str(value).map_err(|_| SAMLError::UnmarshallingError("Invalid XML".to_string()))
+}

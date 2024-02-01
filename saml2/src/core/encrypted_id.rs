@@ -1,2 +1,4 @@
 #[derive(Clone, Debug)]
-pub struct EncryptedID {}
+pub struct EncryptedID {
+	
+}

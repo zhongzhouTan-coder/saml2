@@ -10,6 +10,7 @@ pub struct Issuer {
     sp_name_qualifier: Option<String>,
     format: Option<String>,
     sp_provided_id: Option<String>,
+    value: Option<String>,
 }
 
 impl Issuer {
@@ -24,7 +25,16 @@ impl Issuer {
             sp_name_qualifier: None,
             format: None,
             sp_provided_id: None,
+            value: None,
         }
+    }
+
+    pub fn value(&self) -> Option<&String> {
+        self.value.as_ref()
+    }
+
+    pub fn set_value(&mut self, value: Option<String>) {
+        self.value = value
     }
 }
 
@@ -89,6 +99,9 @@ impl TryFrom<Ref<'_, XmlObject>> for Issuer {
                 }
                 _ => {}
             }
+        }
+        if let Some(value) = element.text() {
+            issuer.value = Some(value.to_string());
         }
         Ok(issuer)
     }
