@@ -38,6 +38,12 @@ impl Response {
     const ATTRIB_DESTINATION: &'static str = "Destination";
     const ATTRIB_CONSENT: &'static str = "Consent";
 
+    const CHILD_ISSUER: &'static str = "Issuer";
+    const CHILD_EXTENSIONS: &'static str = "Extensions";
+    const CHILD_ASSERTION: &'static str = "Assertion";
+    const CHILD_STATUS: &'static str = "Status";
+    const CHILD_ENCRYPTED_ASSERTION: &'static str = "EncryptedAssertion";
+
     pub fn assertions(&self) -> &Vec<Assertion> {
         self.assertions.as_ref()
     }
@@ -189,17 +195,17 @@ impl TryFrom<Ref<'_, XmlObject>> for Response {
         for child in object.children() {
             let child = child.borrow();
             match child.q_name().local_name() {
-                "Issuer" => {
+                Self::CHILD_ISSUER => {
                     response.set_issuer(Some(Issuer::try_from(child)?));
                 }
-                "Extensions" => {
+                Self::CHILD_EXTENSIONS => {
                     response.set_extensions(Some(Extensions::try_from(child)?));
                 }
-                "Status" => {
+                Self::CHILD_STATUS => {
                     response.set_status(Status::try_from(child)?);
                 }
-                "Assertion" => response.add_assertion(Assertion::try_from(child)?),
-                "EncryptedAssertion" => {
+                Self::CHILD_ASSERTION => response.add_assertion(Assertion::try_from(child)?),
+                Self::CHILD_ENCRYPTED_ASSERTION => {
                     // todo
                 }
                 _ => {}

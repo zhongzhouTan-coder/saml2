@@ -1,8 +1,9 @@
-use std::{cell::Ref, str::FromStr};
+use std::cell::Ref;
 
 use chrono::{DateTime, Utc};
 
 use crate::{error::SAMLError, xml::XmlObject};
+use crate::core::parse_from_string;
 
 use super::{
     conditions::Conditions, extensions::Extensions, issuer::Issuer, name_id_policy::NameIDPolicy,
@@ -10,7 +11,7 @@ use super::{
     saml_version::SAMLVersion, scoping::Scoping, subject::Subject,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct AuthnRequest {
     id: String,
     version: SAMLVersion,
@@ -48,13 +49,14 @@ impl AuthnRequest {
     const ATTRIB_DESTINATION: &'static str = "Destination";
     const ATTRIB_CONSENT: &'static str = "Consent";
 
-    const CHILD_ISSUER_NAME: &'static str = "Issuer";
-    const CHILD_EXTENSIONS_NAME: &'static str = "Extensions";
-    const CHILD_NAME_ID_POLICY_NAME: &'static str = "NameIDPolicy";
-    const CHILD_SUBJECT_NAME: &'static str = "Subject";
-    const CHILD_CONDITIONS_NAME: &'static str = "Conditions";
-    const CHILD_REQUESTED_AUTHN_CONTEXT_NAME: &'static str = "RequestedAuthnContext";
-    const CHILD_SCOPING_NAME: &'static str = "Scoping";
+    const CHILD_ISSUER: &'static str = "Issuer";
+    const CHILD_EXTENSIONS: &'static str = "Extensions";
+    const CHILD_NAME_ID_POLICY: &'static str = "NameIDPolicy";
+    const CHILD_SUBJECT: &'static str = "Subject";
+    const CHILD_CONDITIONS: &'static str = "Conditions";
+    const CHILD_REQUESTED_AUTHN_CONTEXT: &'static str = "RequestedAuthnContext";
+    const CHILD_SCOPING: &'static str = "Scoping";
+    const CHILD_SIGNATURE: &'static str = "Signature";
 
     #[inline]
     pub fn subject(&self) -> Option<&Subject> {
@@ -271,87 +273,49 @@ impl RequestAbstractType for AuthnRequest {
     }
 }
 
-impl Default for AuthnRequest {
-    fn default() -> Self {
-        Self {
-            id: Default::default(),
-            version: Default::default(),
-            issue_instant: Utc::now(),
-            destination: Default::default(),
-            consent: Default::default(),
-            issuer: Default::default(),
-            extensions: Default::default(),
-            signature: Default::default(),
-            subject: Default::default(),
-            name_id_policy: Default::default(),
-            conditions: Default::default(),
-            requested_authn_context: Default::default(),
-            scoping: Default::default(),
-            force_authn: Default::default(),
-            is_passive: Default::default(),
-            assertion_consumer_service_index: Default::default(),
-            assertion_consumer_service_url: Default::default(),
-            protocol_binding: Default::default(),
-            attribute_consuming_service_index: Default::default(),
-            provider_name: Default::default(),
-        }
-    }
-}
-
 impl TryFrom<Ref<'_, XmlObject>> for AuthnRequest {
     type Error = SAMLError;
 
     fn try_from(element: Ref<'_, XmlObject>) -> Result<Self, Self::Error> {
-        #[inline]
-        fn parse_from_string<T: FromStr>(xml_string: &str) -> Result<T, SAMLError> {
-            xml_string
-                .parse::<T>()
-                .map_err(|_| SAMLError::UnmarshallingError("parse value error".to_string()))
-        }
-
         let mut authn_request = AuthnRequest::default();
         for attribute in element.attributes() {
-            match attribute.0.as_str() {
+            let (key, value) = (attribute.0.as_str(), attribute.1.as_str());
+            match key {
                 AuthnRequest::ATTRIB_VERSION => {
-                    authn_request.version = SAMLVersion::from_string(attribute.1.as_str())?;
+                    authn_request.set_version(SAMLVersion::from_string(value)?);
                 }
                 AuthnRequest::ATTRIB_ID => {
-                    authn_request.id = attribute.1.to_string();
+                    authn_request.set_id(value.to_string());
                 }
                 AuthnRequest::ATTRIB_ISSUE_INSTANT => {
-                    authn_request.issue_instant =
-                        parse_from_string::<DateTime<Utc>>(attribute.1.as_str())?;
+                    authn_request.set_issue_instant(parse_from_string(value)?);
                 }
                 AuthnRequest::ATTRIB_DESTINATION => {
-                    authn_request.destination = Some(attribute.1.to_string());
+                    authn_request.set_destination(Some(value.to_string()));
                 }
                 AuthnRequest::ATTRIB_CONSENT => {
-                    authn_request.consent = Some(attribute.1.to_string());
+                    authn_request.set_consent(Some(value.to_string()));
                 }
                 AuthnRequest::ATTRIB_ATTRIBUTE_CONSUMING_SERVICE_INDEX => {
-                    authn_request.attribute_consuming_service_index =
-                        Some(parse_from_string::<usize>(attribute.1.as_str())?);
+                    authn_request.set_attribute_consuming_service_index(Some(parse_from_string(value)?));
                 }
                 AuthnRequest::ATTRIB_PROVIDER_NAME => {
-                    authn_request.provider_name = Some(attribute.1.to_string());
+                    authn_request.set_provider_name(Some(value.to_string()));
                 }
                 AuthnRequest::ATTRIB_ASSERTION_CONSUMER_SERVICE_INDEX => {
-                    authn_request.assertion_consumer_service_index =
-                        Some(parse_from_string::<usize>(attribute.1.as_str())?);
+                    authn_request.set_assertion_consumer_service_index(Some(parse_from_string(value)?));
                 }
                 AuthnRequest::ATTRIB_ASSERTION_CONSUMER_SERVICE_URL => {
-                    authn_request.assertion_consumer_service_url = Some(attribute.1.to_string());
+                    authn_request.set_assertion_consumer_service_url(Some(value.to_string()));
                 }
                 AuthnRequest::ATTRIB_PROTOCOL_BINDING => {
-                    authn_request.protocol_binding = Some(attribute.1.to_string());
+                    authn_request.set_protocol_binding(Some(value.to_string()));
                 }
                 AuthnRequest::ATTRIB_FORCE_AUTHN => {
-                    authn_request.force_authn =
-                        Some(parse_from_string::<bool>(attribute.1.as_str())?);
+                    authn_request.set_force_authn(Some(parse_from_string(value)?));
                 }
                 AuthnRequest::ATTRIB_IS_PASSIVE => {
-                    authn_request.is_passive =
-                        Some(parse_from_string::<bool>(attribute.1.as_str())?);
+                    authn_request.set_is_passive(Some(parse_from_string(value)?));
                 }
                 _ => {}
             }
@@ -359,28 +323,28 @@ impl TryFrom<Ref<'_, XmlObject>> for AuthnRequest {
         for child in element.children() {
             let child = child.borrow();
             match child.q_name().local_name() {
-                AuthnRequest::CHILD_ISSUER_NAME => {
-                    authn_request.issuer = Some(Issuer::try_from(child)?);
+                AuthnRequest::CHILD_ISSUER => {
+                    authn_request.set_issuer(Some(Issuer::try_from(child)?));
                 }
-                AuthnRequest::CHILD_SUBJECT_NAME => {
-                    authn_request.subject = Some(Subject::try_from(child)?);
+                AuthnRequest::CHILD_SUBJECT => {
+                    authn_request.set_subject(Some(Subject::try_from(child)?));
                 }
-                AuthnRequest::CHILD_NAME_ID_POLICY_NAME => {
-                    authn_request.name_id_policy = Some(NameIDPolicy::try_from(child)?);
+                AuthnRequest::CHILD_NAME_ID_POLICY => {
+                    authn_request.set_name_id_policy(Some(NameIDPolicy::try_from(child)?));
                 }
-                AuthnRequest::CHILD_CONDITIONS_NAME => {
-                    authn_request.conditions = Some(Conditions::try_from(child)?);
+                AuthnRequest::CHILD_CONDITIONS => {
+                    authn_request.set_conditions(Some(Conditions::try_from(child)?));
                 }
-                AuthnRequest::CHILD_REQUESTED_AUTHN_CONTEXT_NAME => {
-                    authn_request.requested_authn_context =
-                        Some(RequestedAuthnContext::try_from(child)?);
+                AuthnRequest::CHILD_REQUESTED_AUTHN_CONTEXT => {
+                    authn_request.set_requested_authn_context(Some(RequestedAuthnContext::try_from(child)?));
                 }
-                AuthnRequest::CHILD_SCOPING_NAME => {
-                    authn_request.scoping = Some(Scoping::try_from(child)?);
+                AuthnRequest::CHILD_SCOPING => {
+                    authn_request.set_scoping(Some(Scoping::try_from(child)?));
                 }
-                AuthnRequest::CHILD_EXTENSIONS_NAME => {
-                    authn_request.extensions = Some(Extensions::try_from(child)?);
+                AuthnRequest::CHILD_EXTENSIONS => {
+                    authn_request.set_extensions(Some(Extensions::try_from(child)?));
                 }
+                AuthnRequest::CHILD_SIGNATURE => {}
                 _ => {}
             }
         }

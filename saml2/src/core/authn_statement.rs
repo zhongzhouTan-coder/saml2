@@ -18,14 +18,13 @@ pub struct AuthnStatement {
 impl Statement for AuthnStatement {}
 
 /// implement getter and setter for AuthnStatement
-
 impl AuthnStatement {
     const ATTRIB_SESSION_INDEX: &'static str = "SessionIndex";
     const ATTRIB_SESSION_NOT_ON_OR_AFTER: &'static str = "SessionNotOnOrAfter";
+    const ATTRIB_AUTHN_INSTANT: &'static str = "AuthnInstant";
 
     const CHILD_SUBJECT_LOCALITY: &'static str = "SubjectLocality";
     const CHILD_AUTHN_CONTEXT: &'static str = "AuthnContext";
-    const CHILD_AUTHN_INSTANT: &'static str = "AuthnInstant";
     const CHILD_SESSION_INDEX: &'static str = "SessionIndex";
 
     pub fn subject_locality(&self) -> Option<&String> {
@@ -76,15 +75,26 @@ impl TryFrom<Ref<'_, XmlObject>> for AuthnStatement {
     fn try_from(object: Ref<'_, XmlObject>) -> Result<Self, Self::Error> {
         let mut authn_statement = AuthnStatement::default();
         for attribute in object.attributes() {
-            match attribute.0.as_str() {
+            let (key, value) = (attribute.0.as_str(), attribute.1.as_str());
+            match key {
                 Self::ATTRIB_SESSION_INDEX => {
-                    authn_statement.set_session_index(Some(attribute.1.to_string()));
+                    authn_statement.set_session_index(Some(value.to_string()));
                 }
                 Self::ATTRIB_SESSION_NOT_ON_OR_AFTER => {
-                    authn_statement.set_session_not_on_or_after(Some(parse_from_string(
-                        attribute.1.as_str(),
-                    )?));
+                    authn_statement.set_session_not_on_or_after(Some(parse_from_string(value)?));
                 }
+                Self::ATTRIB_AUTHN_INSTANT => {
+                    authn_statement.set_authn_instant(Some(parse_from_string(value)?))
+                }
+                _ => {}
+            }
+        }
+        for child in object.children() {
+            let child = child.borrow();
+            match child.q_name().local_name().as_ref() {
+                AuthnStatement::CHILD_SUBJECT_LOCALITY => {}
+                AuthnStatement::CHILD_AUTHN_CONTEXT => {}
+                AuthnStatement::CHILD_SESSION_INDEX => {},
                 _ => {}
             }
         }
