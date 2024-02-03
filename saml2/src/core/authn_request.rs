@@ -2,8 +2,8 @@ use std::cell::Ref;
 
 use chrono::{DateTime, Utc};
 
-use crate::{error::SAMLError, xml::XmlObject};
 use crate::core::parse_from_string;
+use crate::{error::SAMLError, xml::XmlObject};
 
 use super::{
     conditions::Conditions, extensions::Extensions, issuer::Issuer, name_id_policy::NameIDPolicy,
@@ -94,7 +94,7 @@ impl AuthnRequest {
     }
 
     #[inline]
-    pub fn set_request_authn_context(
+    pub fn set_requested_authn_context(
         &mut self,
         request_authn_context: Option<RequestedAuthnContext>,
     ) {
@@ -297,13 +297,15 @@ impl TryFrom<Ref<'_, XmlObject>> for AuthnRequest {
                     authn_request.set_consent(Some(value.to_string()));
                 }
                 AuthnRequest::ATTRIB_ATTRIBUTE_CONSUMING_SERVICE_INDEX => {
-                    authn_request.set_attribute_consuming_service_index(Some(parse_from_string(value)?));
+                    authn_request
+                        .set_attribute_consuming_service_index(Some(parse_from_string(value)?));
                 }
                 AuthnRequest::ATTRIB_PROVIDER_NAME => {
                     authn_request.set_provider_name(Some(value.to_string()));
                 }
                 AuthnRequest::ATTRIB_ASSERTION_CONSUMER_SERVICE_INDEX => {
-                    authn_request.set_assertion_consumer_service_index(Some(parse_from_string(value)?));
+                    authn_request
+                        .set_assertion_consumer_service_index(Some(parse_from_string(value)?));
                 }
                 AuthnRequest::ATTRIB_ASSERTION_CONSUMER_SERVICE_URL => {
                     authn_request.set_assertion_consumer_service_url(Some(value.to_string()));
@@ -336,7 +338,8 @@ impl TryFrom<Ref<'_, XmlObject>> for AuthnRequest {
                     authn_request.set_conditions(Some(Conditions::try_from(child)?));
                 }
                 AuthnRequest::CHILD_REQUESTED_AUTHN_CONTEXT => {
-                    authn_request.set_requested_authn_context(Some(RequestedAuthnContext::try_from(child)?));
+                    authn_request
+                        .set_requested_authn_context(Some(RequestedAuthnContext::try_from(child)?));
                 }
                 AuthnRequest::CHILD_SCOPING => {
                     authn_request.set_scoping(Some(Scoping::try_from(child)?));

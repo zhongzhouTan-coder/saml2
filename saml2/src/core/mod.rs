@@ -35,6 +35,7 @@ mod requester_id;
 pub mod response;
 mod saml_version;
 mod scoping;
+mod signature;
 mod statement;
 mod status;
 mod status_code;
