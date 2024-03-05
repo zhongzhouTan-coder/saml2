@@ -1,6 +1,6 @@
 use std::{cell::Ref, fmt::Display};
 
-use crate::{error::SAMLError, xml::XmlObject};
+use crate::{common::SAML2Obj, error::SAMLError, xml::XmlObject};
 
 use super::abstract_name_id_type::AbstractNameIDType;
 
@@ -13,11 +13,17 @@ pub struct Issuer {
     value: Option<String>,
 }
 
+impl SAML2Obj for Issuer {}
+
 impl Issuer {
     const ATTRIB_NAME_QUALIFIER: &'static str = "NameQualifier";
     const ATTRIB_SP_NAME_QUALIFIER: &'static str = "SPNameQualifier";
     const ATTRIB_FORMAT: &'static str = "Format";
     const ATTRIB_SP_PROVIDED_ID: &'static str = "SPProvidedID";
+
+    const ELEMENT_NAME: &'static str = "Issuer";
+    const NS_PREFIX: &'static str = "saml2";
+    const NS_URI: &'static str = "urn:oasis:names:tc:SAML:2.0:assertion";
 
     pub fn new() -> Issuer {
         Issuer {
@@ -104,6 +110,37 @@ impl TryFrom<Ref<'_, XmlObject>> for Issuer {
             issuer.value = Some(value.to_string());
         }
         Ok(issuer)
+    }
+}
+
+impl TryFrom<Issuer> for XmlObject {
+    type Error = SAMLError;
+
+    fn try_from(issuer: Issuer) -> Result<Self, Self::Error> {
+        let mut xml_object = XmlObject::new(
+            Some(Issuer::NS_URI.to_string()),
+            Issuer::ELEMENT_NAME.to_string(),
+            Some(Issuer::NS_PREFIX.to_string()),
+        );
+        if let Some(name_qualifier) = issuer.name_qualifier {
+            xml_object.add_attribute(Issuer::ATTRIB_NAME_QUALIFIER.to_string(), name_qualifier);
+        }
+        if let Some(sp_name_qualifier) = issuer.sp_name_qualifier {
+            xml_object.add_attribute(
+                Issuer::ATTRIB_SP_NAME_QUALIFIER.to_string(),
+                sp_name_qualifier,
+            );
+        }
+        if let Some(format) = issuer.format {
+            xml_object.add_attribute(Issuer::ATTRIB_FORMAT.to_string(), format);
+        }
+        if let Some(sp_provided_id) = issuer.sp_provided_id {
+            xml_object.add_attribute(Issuer::ATTRIB_SP_PROVIDED_ID.to_string(), sp_provided_id);
+        }
+        if let Some(value) = issuer.value {
+            xml_object.set_text(Some(value));
+        }
+        Ok(xml_object)
     }
 }
 

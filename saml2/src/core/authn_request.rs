@@ -1,7 +1,9 @@
-use std::cell::Ref;
+use std::cell::{Ref, RefCell};
+use std::rc::Rc;
 
 use chrono::{DateTime, Utc};
 
+use crate::common::SAML2Obj;
 use crate::core::parse_from_string;
 use crate::{error::SAMLError, xml::XmlObject};
 
@@ -35,6 +37,8 @@ pub struct AuthnRequest {
     provider_name: Option<String>,
 }
 
+impl SAML2Obj for AuthnRequest {}
+
 impl AuthnRequest {
     const ATTRIB_FORCE_AUTHN: &'static str = "ForceAuthn";
     const ATTRIB_IS_PASSIVE: &'static str = "IsPassive";
@@ -57,6 +61,10 @@ impl AuthnRequest {
     const CHILD_REQUESTED_AUTHN_CONTEXT: &'static str = "RequestedAuthnContext";
     const CHILD_SCOPING: &'static str = "Scoping";
     const CHILD_SIGNATURE: &'static str = "Signature";
+
+    const ELEMENT_NAME: &'static str = "AuthnRequest";
+    const NS_PREFIX: &'static str = "saml2p";
+    const NS_URI: &'static str = "urn:oasis:names:tc:SAML:2.0:protocol";
 
     #[inline]
     pub fn subject(&self) -> Option<&Subject> {
@@ -271,6 +279,10 @@ impl RequestAbstractType for AuthnRequest {
     fn set_signature(&mut self, signature: Option<String>) {
         self.signature = signature
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 impl TryFrom<Ref<'_, XmlObject>> for AuthnRequest {
@@ -352,5 +364,107 @@ impl TryFrom<Ref<'_, XmlObject>> for AuthnRequest {
             }
         }
         Ok(authn_request)
+    }
+}
+
+impl TryFrom<AuthnRequest> for XmlObject {
+    type Error = SAMLError;
+
+    fn try_from(authn_request: AuthnRequest) -> Result<Self, Self::Error> {
+        let mut xml_object = XmlObject::new(
+            Some(AuthnRequest::NS_URI.to_string()),
+            AuthnRequest::ELEMENT_NAME.to_string(),
+            Some(AuthnRequest::NS_PREFIX.to_string()),
+        );
+        xml_object.add_namespace(
+            AuthnRequest::NS_PREFIX.to_string(),
+            AuthnRequest::NS_URI.to_string(),
+        );
+        xml_object.add_attribute(
+            AuthnRequest::ATTRIB_VERSION.to_string(),
+            authn_request.version.to_string(),
+        );
+        xml_object.add_attribute(AuthnRequest::ATTRIB_ID.to_string(), authn_request.id);
+        xml_object.add_attribute(
+            AuthnRequest::ATTRIB_ISSUE_INSTANT.to_string(),
+            authn_request.issue_instant.to_rfc3339(),
+        );
+        if let Some(destination) = authn_request.destination {
+            xml_object.add_attribute(AuthnRequest::ATTRIB_DESTINATION.to_string(), destination);
+        }
+        if let Some(consent) = authn_request.consent {
+            xml_object.add_attribute(AuthnRequest::ATTRIB_CONSENT.to_string(), consent);
+        }
+        if let Some(attribute_consuming_service_index) =
+            authn_request.attribute_consuming_service_index
+        {
+            xml_object.add_attribute(
+                AuthnRequest::ATTRIB_ATTRIBUTE_CONSUMING_SERVICE_INDEX.to_string(),
+                attribute_consuming_service_index.to_string(),
+            );
+        }
+        if let Some(assertion_consumer_service_index) =
+            authn_request.assertion_consumer_service_index
+        {
+            xml_object.add_attribute(
+                AuthnRequest::ATTRIB_ASSERTION_CONSUMER_SERVICE_INDEX.to_string(),
+                assertion_consumer_service_index.to_string(),
+            );
+        }
+        if let Some(provider_name) = authn_request.provider_name {
+            xml_object.add_attribute(
+                AuthnRequest::ATTRIB_PROVIDER_NAME.to_string(),
+                provider_name,
+            );
+        }
+        if let Some(assertion_consumer_service_url) = authn_request.assertion_consumer_service_url {
+            xml_object.add_attribute(
+                AuthnRequest::ATTRIB_ASSERTION_CONSUMER_SERVICE_URL.to_string(),
+                assertion_consumer_service_url,
+            );
+        }
+        if let Some(protocol_binding) = authn_request.protocol_binding {
+            xml_object.add_attribute(
+                AuthnRequest::ATTRIB_PROTOCOL_BINDING.to_string(),
+                protocol_binding,
+            );
+        }
+        if let Some(force_authn) = authn_request.force_authn {
+            xml_object.add_attribute(
+                AuthnRequest::ATTRIB_FORCE_AUTHN.to_string(),
+                force_authn.to_string(),
+            );
+        }
+        if let Some(is_passive) = authn_request.is_passive {
+            xml_object.add_attribute(
+                AuthnRequest::ATTRIB_IS_PASSIVE.to_string(),
+                is_passive.to_string(),
+            );
+        }
+
+        if let Some(issuer) = authn_request.issuer {
+            xml_object.add_child(Rc::new(RefCell::new(XmlObject::try_from(issuer)?)));
+        }
+        if let Some(subject) = authn_request.subject {
+            xml_object.add_child(Rc::new(RefCell::new(XmlObject::try_from(subject)?)));
+        }
+        if let Some(name_id_policy) = authn_request.name_id_policy {
+            xml_object.add_child(Rc::new(RefCell::new(XmlObject::try_from(name_id_policy)?)));
+        }
+        if let Some(conditions) = authn_request.conditions {
+            xml_object.add_child(Rc::new(RefCell::new(XmlObject::try_from(conditions)?)));
+        }
+        if let Some(requested_authn_context) = authn_request.requested_authn_context {
+            xml_object.add_child(Rc::new(RefCell::new(XmlObject::try_from(
+                requested_authn_context,
+            )?)));
+        }
+        if let Some(scoping) = authn_request.scoping {
+            xml_object.add_child(Rc::new(RefCell::new(XmlObject::try_from(scoping)?)));
+        }
+        if let Some(extensions) = authn_request.extensions {
+            xml_object.add_child(Rc::new(RefCell::new(XmlObject::try_from(extensions)?)));
+        }
+        Ok(xml_object)
     }
 }

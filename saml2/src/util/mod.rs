@@ -33,3 +33,6 @@ impl Read for InputStream {
         std::io::Result::Ok(r_len)
     }
 }
+
+#[derive(Default, Debug)]
+pub struct AttributeMap {}

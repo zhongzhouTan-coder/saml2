@@ -1,6 +1,9 @@
-use std::cell::Ref;
+use std::{
+    cell::{Ref, RefCell},
+    rc::Rc,
+};
 
-use crate::{error::SAMLError, xml::XmlObject};
+use crate::{common::SAML2Obj, error::SAMLError, xml::XmlObject};
 
 use super::audience::Audience;
 
@@ -9,19 +12,26 @@ pub struct AudienceRestriction {
     audiences: Vec<Audience>,
 }
 
+impl SAML2Obj for AudienceRestriction {}
+
 impl AudienceRestriction {
     const CHILD_AUDIENCE: &'static str = "Audience";
 
+    const ELEMENT_NAME: &'static str = "AudienceRestriction";
+    const NS_PREFIX: &'static str = "saml2";
+    const NS_URI: &'static str = "urn:oasis:names:tc:SAML:2.0:assertion";
+
+    #[inline]
     pub fn audiences(&self) -> &Vec<Audience> {
         &self.audiences
     }
 
+    #[inline]
     pub fn add_audiences(&mut self, audience: Audience) {
         self.audiences.push(audience)
     }
 }
 
-/// implement tryFrom Ref<'_, XmlObject> for AudienceRestriction
 impl TryFrom<Ref<'_, XmlObject>> for AudienceRestriction {
     type Error = SAMLError;
 
@@ -37,5 +47,25 @@ impl TryFrom<Ref<'_, XmlObject>> for AudienceRestriction {
             }
         }
         Ok(audience_restriction)
+    }
+}
+
+impl TryFrom<AudienceRestriction> for XmlObject {
+    type Error = SAMLError;
+
+    fn try_from(audience_restriction: AudienceRestriction) -> Result<Self, Self::Error> {
+        let mut xml_obj = XmlObject::new(
+            Some(AudienceRestriction::NS_PREFIX.to_string()),
+            AudienceRestriction::ELEMENT_NAME.to_string(),
+            Some(AudienceRestriction::NS_URI.to_string()),
+        );
+        xml_obj.add_namespace(
+            AudienceRestriction::NS_PREFIX.to_string(),
+            AudienceRestriction::NS_URI.to_string(),
+        );
+        for audience in audience_restriction.audiences {
+            xml_obj.add_child(Rc::new(RefCell::new(XmlObject::try_from(audience)?)));
+        }
+        Ok(xml_obj)
     }
 }

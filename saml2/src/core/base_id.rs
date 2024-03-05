@@ -1,6 +1,6 @@
 use std::cell::Ref;
 
-use crate::{error::SAMLError, xml::XmlObject};
+use crate::{common::SAML2Obj, error::SAMLError, xml::XmlObject};
 
 #[derive(Clone, Debug)]
 pub struct BaseID {
@@ -8,9 +8,15 @@ pub struct BaseID {
     sp_name_qualifier: Option<String>,
 }
 
+impl SAML2Obj for BaseID {}
+
 impl BaseID {
     const ATTRIB_NAME_QUALIFIER: &'static str = "NameQualifier";
     const ATTRIB_SP_NAME_QUALIFIER: &'static str = "SPNameQualifier";
+
+    const ELEMENT_NAME: &'static str = "BaseID";
+    const NS_PREFIX: &'static str = "saml2";
+    const NS_URI: &'static str = "urn:oasis:names:tc:SAML:2.0:assertion";
 
     pub fn new(name_qualifier: Option<String>, sp_name_qualifier: Option<String>) -> Self {
         BaseID {
@@ -36,8 +42,6 @@ impl BaseID {
     }
 }
 
-/// implement tryFrom Ref<'_, XmlObject> for BaseID
-
 impl TryFrom<Ref<'_, XmlObject>> for BaseID {
     type Error = SAMLError;
 
@@ -55,5 +59,30 @@ impl TryFrom<Ref<'_, XmlObject>> for BaseID {
             }
         }
         Ok(base_id)
+    }
+}
+
+impl TryFrom<BaseID> for XmlObject {
+    type Error = SAMLError;
+
+    fn try_from(value: BaseID) -> Result<Self, Self::Error> {
+        let mut object = XmlObject::new(
+            Some(BaseID::NS_URI.to_string()),
+            BaseID::ELEMENT_NAME.to_string(),
+            Some(BaseID::NS_PREFIX.to_string()),
+        );
+        if let Some(name_qualifier) = value.name_qualifier() {
+            object.add_attribute(
+                BaseID::ATTRIB_NAME_QUALIFIER.to_string(),
+                name_qualifier.to_string(),
+            );
+        }
+        if let Some(sp_name_qualifier) = value.sp_name_qualifier() {
+            object.add_attribute(
+                BaseID::ATTRIB_SP_NAME_QUALIFIER.to_string(),
+                sp_name_qualifier.to_string(),
+            );
+        }
+        Ok(object)
     }
 }

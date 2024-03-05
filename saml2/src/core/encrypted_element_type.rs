@@ -1,4 +1,4 @@
-use super::{encrypted_data::EncryptedData, encrypted_key::EncryptedKey};
+use crate::encryption::{encrypted_data::EncryptedData, encrypted_key::EncryptedKey};
 
 pub trait EncryptedElementType {
     fn encrypted_data(&self) -> EncryptedData;

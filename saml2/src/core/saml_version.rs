@@ -1,12 +1,12 @@
-use std::fmt::Display;
-
-use crate::error::SAMLError;
+use crate::{common::SAML2Obj, error::SAMLError};
 
 #[derive(Clone, Default, Debug)]
 pub struct SAMLVersion {
     major: i32,
     minor: i32,
 }
+
+impl SAML2Obj for SAMLVersion {}
 
 impl SAMLVersion {
     pub fn new(major: i32, minor: i32) -> SAMLVersion {
@@ -33,8 +33,8 @@ impl SAMLVersion {
     }
 }
 
-impl Display for SAMLVersion {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}.{}", self.major, self.minor)
+impl ToString for SAMLVersion {
+    fn to_string(&self) -> String {
+        format!("{}.{}", self.major, self.minor)
     }
 }

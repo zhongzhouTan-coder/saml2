@@ -1,6 +1,6 @@
 use std::cell::Ref;
 
-use crate::{error::SAMLError, xml::XmlObject};
+use crate::{common::SAML2Obj, error::SAMLError, xml::XmlObject};
 
 use super::abstract_name_id_type::AbstractNameIDType;
 
@@ -12,11 +12,17 @@ pub struct NameID {
     sp_provided_id: Option<String>,
 }
 
+impl SAML2Obj for NameID {}
+
 impl NameID {
     const ATTRIB_NAME_QUALIFIER: &'static str = "NameQualifier";
     const ATTRIB_SP_NAME_QUALIFIER: &'static str = "SPNameQualifier";
     const ATTRIB_FORMAT: &'static str = "Format";
     const ATTRIB_SP_PROVIDED_ID: &'static str = "SPProvidedID";
+
+    const ELEMENT_NAME: &'static str = "NameID";
+    const NS_PREFIX: &'static str = "saml2";
+    const NS_URI: &'static str = "urn:oasis:names:tc:SAML:2.0:assertion";
 }
 
 impl AbstractNameIDType for NameID {
@@ -53,8 +59,6 @@ impl AbstractNameIDType for NameID {
     }
 }
 
-/// implement tryFrom Ref<'_, XmlObject> for NameID
-
 impl TryFrom<Ref<'_, XmlObject>> for NameID {
     type Error = SAMLError;
 
@@ -62,21 +66,56 @@ impl TryFrom<Ref<'_, XmlObject>> for NameID {
         let mut name_id = NameID::default();
         for attribute in element.attributes() {
             match attribute.0.as_str() {
-                Self::ATTRIB_NAME_QUALIFIER => {
+                NameID::ATTRIB_NAME_QUALIFIER => {
                     name_id.set_name_qualifier(Some(attribute.1.to_string()));
                 }
-                Self::ATTRIB_SP_NAME_QUALIFIER => {
+                NameID::ATTRIB_SP_NAME_QUALIFIER => {
                     name_id.set_sp_name_qualifier(Some(attribute.1.to_string()));
                 }
-                Self::ATTRIB_FORMAT => {
+                NameID::ATTRIB_FORMAT => {
                     name_id.set_format(Some(attribute.1.to_string()));
                 }
-                Self::ATTRIB_SP_PROVIDED_ID => {
+                NameID::ATTRIB_SP_PROVIDED_ID => {
                     name_id.set_sp_provided_id(Some(attribute.1.to_string()));
                 }
                 _ => {}
             }
         }
         Ok(name_id)
+    }
+}
+
+impl TryFrom<NameID> for XmlObject {
+    type Error = SAMLError;
+
+    fn try_from(value: NameID) -> Result<Self, Self::Error> {
+        let mut xml_object = XmlObject::new(
+            Some(NameID::NS_URI.to_string()),
+            NameID::ELEMENT_NAME.to_string(),
+            Some(NameID::NS_PREFIX.to_string()),
+        );
+        xml_object.add_namespace(NameID::NS_PREFIX.to_string(), NameID::NS_URI.to_string());
+        if let Some(name_qualifier) = value.name_qualifier() {
+            xml_object.add_attribute(
+                NameID::ATTRIB_NAME_QUALIFIER.to_string(),
+                name_qualifier.to_string(),
+            );
+        }
+        if let Some(sp_name_qualifier) = value.sp_name_qualifier() {
+            xml_object.add_attribute(
+                NameID::ATTRIB_SP_NAME_QUALIFIER.to_string(),
+                sp_name_qualifier.to_string(),
+            );
+        }
+        if let Some(format) = value.format() {
+            xml_object.add_attribute(NameID::ATTRIB_FORMAT.to_string(), format.to_string());
+        }
+        if let Some(sp_provided_id) = value.sp_provided_id() {
+            xml_object.add_attribute(
+                NameID::ATTRIB_SP_PROVIDED_ID.to_string(),
+                sp_provided_id.to_string(),
+            );
+        }
+        Ok(xml_object)
     }
 }

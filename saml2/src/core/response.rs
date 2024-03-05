@@ -2,6 +2,7 @@ use std::cell::Ref;
 
 use chrono::{DateTime, Utc};
 
+use crate::common::SAML2Obj;
 use crate::core::extensions::Extensions;
 use crate::core::issuer::Issuer;
 use crate::core::saml_version::SAMLVersion;
@@ -29,6 +30,8 @@ pub struct Response {
     assertions: Vec<Assertion>,
     encrypted_assertions: Vec<EncryptedAssertion>,
 }
+
+impl SAML2Obj for Response {}
 
 impl Response {
     const ATTRIB_ID: &'static str = "ID";

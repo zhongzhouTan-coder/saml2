@@ -1,6 +1,6 @@
 use std::cell::Ref;
 
-use crate::{error::SAMLError, xml::XmlObject};
+use crate::{common::SAML2Obj, error::SAMLError, xml::XmlObject};
 
 #[derive(Clone, Debug)]
 pub struct NameIDPolicy {
@@ -9,10 +9,16 @@ pub struct NameIDPolicy {
     allows_create: Option<String>,
 }
 
+impl SAML2Obj for NameIDPolicy {}
+
 impl NameIDPolicy {
     const ATTRIB_ALLOW_CREATE: &'static str = "AllowCreate";
     const ATTRIB_FORMAT: &'static str = "Format";
     const ATTRIB_SP_NAME_QUALIFIER: &'static str = "SPNameQualifier";
+
+    const ELEMENT_NAME: &'static str = "NameIDPolicy";
+    const NS_PREFIX: &'static str = "saml2p";
+    const NS_URI: &'static str = "urn:oasis:names:tc:SAML:2.0:protocol";
 
     pub fn new() -> Self {
         Self {
@@ -67,5 +73,37 @@ impl TryFrom<Ref<'_, XmlObject>> for NameIDPolicy {
             }
         }
         Ok(name_id_policy)
+    }
+}
+
+impl TryFrom<NameIDPolicy> for XmlObject {
+    type Error = SAMLError;
+
+    fn try_from(name_id_policy: NameIDPolicy) -> Result<Self, Self::Error> {
+        let mut xml_object = XmlObject::new(
+            Some(NameIDPolicy::NS_PREFIX.to_string()),
+            NameIDPolicy::ELEMENT_NAME.to_string(),
+            Some(NameIDPolicy::NS_URI.to_string()),
+        );
+        xml_object.add_namespace(
+            NameIDPolicy::NS_PREFIX.to_string(),
+            NameIDPolicy::NS_URI.to_string(),
+        );
+        if let Some(format) = name_id_policy.format {
+            xml_object.add_attribute(NameIDPolicy::ATTRIB_FORMAT.to_string(), format.to_string());
+        }
+        if let Some(sp_name_qualifier) = name_id_policy.sp_name_qualifier {
+            xml_object.add_attribute(
+                NameIDPolicy::ATTRIB_SP_NAME_QUALIFIER.to_string(),
+                sp_name_qualifier.to_string(),
+            );
+        }
+        if let Some(allows_create) = name_id_policy.allows_create {
+            xml_object.add_attribute(
+                NameIDPolicy::ATTRIB_ALLOW_CREATE.to_string(),
+                allows_create.to_string(),
+            );
+        }
+        Ok(xml_object)
     }
 }

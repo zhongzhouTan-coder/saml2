@@ -29,6 +29,8 @@ pub fn decode_request(
         );
         match XmlObject::parse_xml(InputStream::new(saml_message)) {
             Ok(xml_object) => {
+                let result = XmlObject::write_xml(xml_object.clone());
+                println!("xml object is {:?}", result);
                 let authn_request = AuthnRequest::try_from(xml_object.borrow())?;
                 Ok(Box::new(authn_request))
             }
@@ -86,7 +88,7 @@ mod test {
 
     #[test]
     fn we_can_decode_base64_encode_inflate_saml_message() {
-        let messages = "";
+        let messages = "fVNLj5swEL6vtP8BcQ8YNo9iJanSpI9IaYIC7aGXyrWHxhK2qW1203/fgc1uUqnlhGx/j/lmhrljqm7oqvUnfYRfLTgfnFWtHe0fFmFrNTXMSUc1U+Co57RYfd7RNCK0scYbburw/u7KGaYw58B6aTRytptFeNi/3x0+bvff35BsRmYVIQ+ETQQh05TwTGSiymbVNJ2xCjLBeTpG3lewDhUWIQriMbfmUQqwezRbhEUeeAzRyTvXwlY7z7RHLEnGIzIbJdMyfaCTlI4n3xC0QazUzPd6J+8bGsdSNBGcmWpqiLhRcVEcCrCPkkPUnJpnxz73O6mF1D+HE/94Bjn6qSzzUX4oSlRYvbRhbbRrFdiLwZfj7rUM93cVApRJYhSDc1fGW8ZduLy/m3c9p31WuxxiKvBMMM868jy+ZV1EGtp1cLvJTS357+CDsYr5/2dLoqS/kWJU9VAKisl6JYQF57qMdW2e1haYx7F420IYxFevy7KB6FcP2+Dh7IO1UQ2z0nXTwAjcXyPe4tY17tERquXgqnHKOxxe5/h5MlZ0gwOOpqVl2jXG+ksn/imOzvFAsTfvt7/P8g8=";
         let mut params: HashMap<String, String> = HashMap::new();
         params.insert("SAMLRequest".to_string(), messages.to_string());
         let result = decode_request(&params);

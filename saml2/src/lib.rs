@@ -1,7 +1,10 @@
 mod binding;
+mod common;
 mod core;
+mod encryption;
 mod error;
 mod metadata;
+mod signature;
 mod util;
 mod xml;
 

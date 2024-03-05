@@ -2,7 +2,7 @@ use std::cell::Ref;
 
 use chrono::{DateTime, Utc};
 
-use crate::{error::SAMLError, xml::XmlObject};
+use crate::{common::SAML2Obj, error::SAMLError, xml::XmlObject};
 
 use super::{
     advice::Advice, authn_statement::AuthnStatement, conditions::Conditions, issuer::Issuer,
@@ -22,7 +22,7 @@ pub struct Assertion {
     statements: Vec<Box<dyn Statement>>,
 }
 
-/// implement getter and setter for Assertion
+impl SAML2Obj for Assertion {}
 
 impl Assertion {
     const ATTRIB_ID: &'static str = "ID";
@@ -114,7 +114,6 @@ impl Assertion {
     }
 }
 
-/// implement tryFrom Ref<'_, XmlObject> for Assertion
 impl TryFrom<Ref<'_, XmlObject>> for Assertion {
     type Error = SAMLError;
 

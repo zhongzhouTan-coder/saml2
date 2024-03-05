@@ -19,11 +19,10 @@ mod base_id;
 mod conditions;
 mod element_type;
 mod encrypted_assertion;
-mod encrypted_data;
 mod encrypted_element_type;
 mod encrypted_id;
-mod encrypted_key;
 mod extensions;
+pub mod get_complete;
 mod idp_entry;
 mod idp_list;
 mod issuer;
@@ -39,10 +38,13 @@ mod signature;
 mod statement;
 mod status;
 mod status_code;
+mod status_detail;
+mod status_message;
 pub mod status_response_type;
 mod subject;
 mod subject_confirmation;
 mod subject_confirmation_data;
+pub mod subject_locality;
 
 /// parse a xml string to a type that implements the fromStr trait
 fn parse_from_string<T: FromStr>(value: &str) -> Result<T, SAMLError> {

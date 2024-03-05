@@ -1,8 +1,10 @@
+use std::any::Any;
+
 use chrono::{DateTime, Utc};
 
 use super::{extensions::Extensions, issuer::Issuer, saml_version::SAMLVersion};
 
-pub trait RequestAbstractType {
+pub trait RequestAbstractType: Any {
     fn version(&self) -> &SAMLVersion;
 
     fn set_version(&mut self, saml_version: SAMLVersion);
@@ -34,4 +36,6 @@ pub trait RequestAbstractType {
     fn signature(&self) -> Option<&String>;
 
     fn set_signature(&mut self, signature: Option<String>);
+
+    fn as_any(&self) -> &dyn Any;
 }
